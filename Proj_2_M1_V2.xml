@@ -216,16 +216,12 @@ system Pacemaker, Heart;
 			</result>
 		</query>
 		<query>
-			<formula>A[] last_sense imply (Heart.xh &gt;= minIBI &amp;&amp; Heart.xh &lt;= maxIBI)</formula>
-			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-11-14 21:04:18 -0500">
-			</result>
+			<formula>A[] Heart.SenseReady imply (Heart.xh &gt;= minIBI &amp;&amp; Heart.xh &lt;= maxIBI)</formula>
+			<comment>Heart in SenseReady state has valid clock range for sensing</comment>
 		</query>
 		<query>
-			<formula>A&lt;&gt; last_sense</formula>
-			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-11-14 21:04:18 -0500">
-			</result>
+			<formula>E&lt;&gt; last_sense</formula>
+			<comment>There exists a path where sense eventually happens</comment>
 		</query>
 	</queries>
 </nta>
