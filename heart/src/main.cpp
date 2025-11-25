@@ -6,8 +6,8 @@
 // ========================================
 // Heart Behavior Constants (from UPPAAL model)
 // ========================================
-const uint32_t minIBI = 400;  // Minimum Inter-Beat Interval in ms
-const uint32_t maxIBI = 1200; // Maximum Inter-Beat Interval in ms
+const uint32_t minIBI = 150;  // Minimum Inter-Beat Interval in ms
+const uint32_t maxIBI = 200; // Maximum Inter-Beat Interval in ms
 
 // UPPAAL Model Invariants:
 // - Resting state: xh <= minIBI
