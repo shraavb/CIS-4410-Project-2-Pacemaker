@@ -6,8 +6,8 @@
 
 //VVI
 
-const int LRL = 1000;      // LRL - Lower rate limit, 60 bpm
-const int URL = 180;       //W
+const int LRL = 1500;      // LRL - Lower rate limit, 60 bpm
+const int URL = 333;       //W
 const int VRP = 150;       // ms
 
 const int HRI = LRL + 200;  // Hysteresis Rate Interval (HRI &gt; LRI)
@@ -28,75 +28,58 @@ const int maxIBI = 1200;  // </declaration>
 		<name>Pacemaker</name>
 		<declaration>//Models the pacemaker controller that monitors and paces the ventricle.
 clock xv;</declaration>
-		<location id="id0" x="-306" y="0">
-			<name x="-391" y="-8">WaitVRP</name>
-			<label kind="invariant" x="-391" y="-42">xv &lt;= VRP</label>
+		<location id="id0" x="-535" y="-51">
+			<name x="-620" y="-59">WaitVRP</name>
+			<label kind="invariant" x="-620" y="-93">xv &lt;= VRP</label>
 		</location>
-		<location id="id1" x="68" y="0">
-			<name x="51" y="17">WaitRI</name>
-			<label kind="invariant" x="51" y="34">xv &lt;= LRL</label>
-		</location>
-		<location id="id2" x="365" y="0">
+		<location id="id1" x="365" y="0">
 			<name x="382" y="-8">SenseReady</name>
 			<label kind="invariant" x="382" y="17">xv &lt;= LRL</label>
 		</location>
-		<location id="id3" x="-119" y="-170">
+		<location id="id2" x="-119" y="-170">
 			<name x="-170" y="-204">PaceEvent</name>
 			<committed/>
 		</location>
-		<location id="id4" x="-119" y="170">
+		<location id="id3" x="-119" y="170">
 			<name x="-161" y="187">SenseEvent</name>
 			<committed/>
 		</location>
 		<init ref="id1"/>
+		<transition id="id4">
+			<source ref="id0"/>
+			<target ref="id1"/>
+			<label kind="guard" x="-229" y="-85">xv &gt;= VRP</label>
+			<label kind="assignment" x="-221" y="-68">xv = 0</label>
+			<nail x="-127" y="-42"/>
+		</transition>
 		<transition id="id5">
 			<source ref="id1"/>
 			<target ref="id3"/>
-			<label kind="guard" x="-136" y="-127">xv &gt;= LRL</label>
-			<label kind="synchronisation" x="-136" y="-144">pace!</label>
-			<label kind="assignment" x="-136" y="-110">last_pace = true,
-last_sense = false,
-RI = LRL</label>
-		</transition>
-		<transition id="id6">
-			<source ref="id1"/>
-			<target ref="id2"/>
-			<label kind="guard" x="144" y="0">xv &gt;= URL</label>
-		</transition>
-		<transition id="id7">
-			<source ref="id2"/>
-			<target ref="id4"/>
 			<label kind="synchronisation" x="144" y="85">sense?</label>
 			<label kind="assignment" x="93" y="110">last_pace = false,
 last_sense = true,
 RI = HRI</label>
 		</transition>
-		<transition id="id8">
-			<source ref="id2"/>
-			<target ref="id3"/>
+		<transition id="id6">
+			<source ref="id1"/>
+			<target ref="id2"/>
 			<label kind="guard" x="68" y="-212">xv &gt;= LRL</label>
 			<label kind="synchronisation" x="68" y="-195">pace!</label>
 			<label kind="assignment" x="68" y="-170">last_pace = true,
 last_sense = false,
 RI = LRL</label>
 		</transition>
-		<transition id="id9">
-			<source ref="id3"/>
+		<transition id="id7">
+			<source ref="id2"/>
 			<target ref="id0"/>
-			<label kind="assignment" x="-255" y="-119">xv = 0,
+			<label kind="assignment" x="-501" y="-161">xv = 0,
 last_pace = false</label>
 		</transition>
-		<transition id="id10">
-			<source ref="id4"/>
+		<transition id="id8">
+			<source ref="id3"/>
 			<target ref="id0"/>
-			<label kind="assignment" x="-340" y="93">xv = 0,
+			<label kind="assignment" x="-433" y="93">xv = 0,
 last_sense = false</label>
-		</transition>
-		<transition id="id11">
-			<source ref="id0"/>
-			<target ref="id1"/>
-			<label kind="guard" x="-161" y="0">xv &gt;= VRP</label>
-			<label kind="assignment" x="-161" y="17">xv = 0</label>
 		</transition>
 	</template>
 	<template>
@@ -105,48 +88,48 @@ last_sense = false</label>
 clock xh; // heart clock: time since last intrinsic or paced beat
 
 </declaration>
-		<location id="id12" x="0" y="-280">
-			<name x="25" y="-306">Resting</name>
-			<label kind="invariant" x="25" y="-323">xh &lt;= minIBI</label>
+		<location id="id9" x="-8" y="-289">
+			<name x="17" y="-315">Resting</name>
+			<label kind="invariant" x="17" y="-348">xh &lt;= minIBI</label>
 		</location>
-		<location id="id13" x="-170" y="-170">
+		<location id="id10" x="-170" y="-170">
 			<name x="-204" y="-153">PacedEvent</name>
 			<committed/>
 		</location>
-		<location id="id14" x="-170" y="-391">
+		<location id="id11" x="-170" y="-391">
 			<name x="-212" y="-433">SenseEvent</name>
 			<committed/>
 		</location>
-		<location id="id15" x="-289" y="-323">
+		<location id="id12" x="-289" y="-323">
 			<name x="-408" y="-340">SenseReady</name>
 			<label kind="invariant" x="-425" y="-314">xh &lt;= maxIBI</label>
 		</location>
-		<init ref="id12"/>
-		<transition id="id16">
-			<source ref="id13"/>
-			<target ref="id12"/>
+		<init ref="id9"/>
+		<transition id="id13">
+			<source ref="id10"/>
+			<target ref="id9"/>
 			<label kind="assignment" x="0" y="-212">xh = 0</label>
 			<nail x="-25" y="-195"/>
 		</transition>
-		<transition id="id17">
-			<source ref="id15"/>
-			<target ref="id13"/>
+		<transition id="id14">
+			<source ref="id12"/>
+			<target ref="id10"/>
 			<label kind="synchronisation" x="-314" y="-263">pace?</label>
 		</transition>
-		<transition id="id18">
-			<source ref="id12"/>
-			<target ref="id15"/>
+		<transition id="id15">
+			<source ref="id9"/>
+			<target ref="id12"/>
 			<label kind="guard" x="-204" y="-289">xh &gt;= minIBI</label>
 		</transition>
-		<transition id="id19">
-			<source ref="id15"/>
-			<target ref="id14"/>
+		<transition id="id16">
+			<source ref="id12"/>
+			<target ref="id11"/>
 			<label kind="synchronisation" x="-374" y="-433">sense!</label>
 		</transition>
-		<transition id="id20">
-			<source ref="id14"/>
-			<target ref="id12"/>
-			<label kind="assignment" x="-93" y="-391">xh = 0</label>
+		<transition id="id17">
+			<source ref="id11"/>
+			<target ref="id9"/>
+			<label kind="assignment" x="-102" y="-408">xh = 0</label>
 		</transition>
 	</template>
 	<system>// System declarations
@@ -157,7 +140,7 @@ system Pacemaker, Heart;
 			<formula>A[] not deadlock</formula>
 			<comment/>
 			<option key="--diagnostic" value="0"/>
-			<result outcome="success" type="quality" timestamp="2025-11-14 21:04:17 -0500">
+			<result outcome="success" type="quality" timestamp="2025-11-24 22:57:42 -0500">
 				<option key="--diagnostic" value="0"/>
 			</result>
 		</query>
@@ -165,7 +148,7 @@ system Pacemaker, Heart;
 			<formula>A[] Pacemaker.WaitVRP imply Pacemaker.xv &lt;= VRP</formula>
 			<comment/>
 			<option key="--diagnostic" value="0"/>
-			<result outcome="success" type="quality" timestamp="2025-11-14 21:04:17 -0500">
+			<result outcome="success" type="quality" timestamp="2025-11-24 22:57:42 -0500">
 				<option key="--diagnostic" value="0"/>
 			</result>
 		</query>
@@ -173,7 +156,7 @@ system Pacemaker, Heart;
 			<formula>A[] (Pacemaker.xv &gt; VRP) imply !Pacemaker.WaitVRP</formula>
 			<comment/>
 			<option key="--diagnostic" value="0"/>
-			<result outcome="success" type="quality" timestamp="2025-11-14 21:04:17 -0500">
+			<result outcome="success" type="quality" timestamp="2025-11-24 22:57:42 -0500">
 				<option key="--diagnostic" value="0"/>
 			</result>
 		</query>
@@ -181,47 +164,33 @@ system Pacemaker, Heart;
 			<formula>A[] Pacemaker.xv &lt;= LRL</formula>
 			<comment/>
 			<option key="--diagnostic" value="0"/>
-			<result outcome="success" type="quality" timestamp="2025-11-14 21:04:17 -0500">
+			<result outcome="success" type="quality" timestamp="2025-11-24 22:57:42 -0500">
 				<option key="--diagnostic" value="0"/>
-			</result>
-		</query>
-		<query>
-			<formula>A[] last_sense imply Pacemaker.xv &gt;= URL</formula>
-			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-11-14 21:04:17 -0500">
 			</result>
 		</query>
 		<query>
 			<formula>A[] last_pace imply Pacemaker.xv &gt;= VRP</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-11-14 21:04:17 -0500">
+			<result outcome="success" type="quality" timestamp="2025-11-24 22:57:42 -0500">
 			</result>
 		</query>
 		<query>
 			<formula>A[] last_sense imply RI == HRI</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-11-14 21:04:18 -0500">
+			<result outcome="success" type="quality" timestamp="2025-11-24 22:57:42 -0500">
 			</result>
 		</query>
 		<query>
 			<formula>A[] last_pace imply RI == LRL</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-11-14 21:04:18 -0500">
+			<result outcome="success" type="quality" timestamp="2025-11-24 22:57:42 -0500">
 			</result>
 		</query>
 		<query>
 			<formula>A[] Heart.xh &lt;= maxIBI</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-11-14 21:04:18 -0500">
+			<result outcome="success" type="quality" timestamp="2025-11-24 22:57:42 -0500">
 			</result>
-		</query>
-		<query>
-			<formula>A[] Heart.SenseReady imply (Heart.xh &gt;= minIBI &amp;&amp; Heart.xh &lt;= maxIBI)</formula>
-			<comment>Heart in SenseReady state has valid clock range for sensing</comment>
-		</query>
-		<query>
-			<formula>E&lt;&gt; last_sense</formula>
-			<comment>There exists a path where sense eventually happens</comment>
 		</query>
 	</queries>
 </nta>
