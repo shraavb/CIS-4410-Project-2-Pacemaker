@@ -55,6 +55,8 @@ uint32_t generateRandomBeatInterval();
 // based on the UPPAAL Heart model
 void TaskHeartStateMachine(void *pvParameters)
 {
+    Serial.println(F("[Heart] HeartStateMachine task started"));
+
     while (true)
     {
         uint32_t currentTime = millis();
@@ -251,8 +253,15 @@ void setup()
 
     Serial.println(F("\n[System] Task initialized, starting scheduler..."));
 
-    // Note: vTaskStartScheduler() is called automatically by the Arduino framework
-    // for FreeRTOS_SAMD21
+    // Start the FreeRTOS scheduler
+    vTaskStartScheduler();
+
+    // Should never reach here if scheduler started successfully
+    Serial.println(F("[ERROR] Scheduler failed to start!"));
+    while (1)
+    {
+        delay(1000);
+    }
 }
 
 void loop()

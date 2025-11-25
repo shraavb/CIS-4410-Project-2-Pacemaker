@@ -62,6 +62,8 @@ void transitionToState(PacemakerState newState);
 // based on the UPPAAL VVI mode model
 void TaskHeartPolling(void *pvParameters)
 {
+    Serial.println(F("[Pacemaker] HeartPolling task started"));
+
     while (true)
     {
         uint32_t currentTime = millis();
@@ -101,7 +103,9 @@ void TaskHeartPolling(void *pvParameters)
             // UPPAAL: WaitVRP -> WaitRI when xv >= VRP
             if (timeInState >= VRP)
             {
-                Serial.println(F("[Pacemaker] VRP complete -> WAIT_RI"));
+                Serial.print(F("[Pacemaker] VRP complete (xv="));
+                Serial.print(timeInState);
+                Serial.println(F(" ms)"));
                 // UPPAAL: WaitVRP -> WaitRI assigns xv = 0
                 stateStartTime = millis();
                 transitionToState(WAIT_RI);
@@ -112,13 +116,17 @@ void TaskHeartPolling(void *pvParameters)
             // UPPAAL: WaitRI -> SenseReady when xv >= URL
             if (timeInState >= URL)
             {
-                Serial.println(F("[Pacemaker] URL reached -> SENSE_READY"));
+                Serial.print(F("[Pacemaker] URL reached (xv="));
+                Serial.print(timeInState);
+                Serial.println(F(" ms)"));
                 transitionToState(SENSE_READY);
             }
             // UPPAAL: WaitRI -> PaceEvent when xv >= LRL (shouldn't happen if URL < LRL)
             else if (timeInState >= LRL)
             {
-                Serial.println(F("[Pacemaker] LRL timeout in WAIT_RI -> PACE"));
+                Serial.print(F("[Pacemaker] LRL timeout in WAIT_RI (xv="));
+                Serial.print(timeInState);
+                Serial.println(F(" ms) -> PACE"));
                 sendPaceSignal();
             }
             break;
@@ -127,7 +135,9 @@ void TaskHeartPolling(void *pvParameters)
             // UPPAAL: SenseReady -> PaceEvent when xv >= LRL
             if (timeInState >= LRL)
             {
-                Serial.println(F("[Pacemaker] LRL timeout -> PACE"));
+                Serial.print(F("[Pacemaker] LRL timeout (xv="));
+                Serial.print(timeInState);
+                Serial.println(F(" ms) -> PACE"));
                 sendPaceSignal();
             }
             break;
@@ -147,6 +157,34 @@ void TaskHeartPolling(void *pvParameters)
 // Transition to a new state (clock continues unless explicitly reset)
 void transitionToState(PacemakerState newState)
 {
+    // Print state transition
+    Serial.print(F("[Pacemaker] State change: "));
+    switch (currentState)
+    {
+    case WAIT_VRP:
+        Serial.print(F("WAIT_VRP"));
+        break;
+    case WAIT_RI:
+        Serial.print(F("WAIT_RI"));
+        break;
+    case SENSE_READY:
+        Serial.print(F("SENSE_READY"));
+        break;
+    }
+    Serial.print(F(" -> "));
+    switch (newState)
+    {
+    case WAIT_VRP:
+        Serial.println(F("WAIT_VRP"));
+        break;
+    case WAIT_RI:
+        Serial.println(F("WAIT_RI"));
+        break;
+    case SENSE_READY:
+        Serial.println(F("SENSE_READY"));
+        break;
+    }
+
     currentState = newState;
     // Note: stateStartTime is NOT reset here - clock keeps running
     // Only reset when UPPAAL model explicitly assigns xv = 0
@@ -205,6 +243,11 @@ void TaskMQTT(void *pvParameters)
 {
     // TODO: Implement MQTT task
     // Continuously poll for MQTT messages
+    while (true)
+    {
+        // Placeholder - MQTT functionality to be implemented
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
 }
 
 void setup()
@@ -295,8 +338,15 @@ void setup()
 
     Serial.println(F("\n[System] All tasks initialized, starting scheduler..."));
 
-    // Note: vTaskStartScheduler() is called automatically by the Arduino framework
-    // for FreeRTOS_SAMD21
+    // Start the FreeRTOS scheduler
+    vTaskStartScheduler();
+
+    // Should never reach here if scheduler started successfully
+    Serial.println(F("[ERROR] Scheduler failed to start!"));
+    while (1)
+    {
+        delay(1000);
+    }
 }
 
 void loop()
