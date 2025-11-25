@@ -25,14 +25,13 @@ const char PACE_SIGNAL = 'P';  // Pacemaker sends 'P' to pace the heart
 enum PacemakerState
 {
     WAIT_VRP,   // UPPAAL: Waiting during VRP, invariant xv <= VRP
-    WAIT_RI,    // UPPAAL: Waiting during Rate Interval, invariant xv <= LRL, can't sense until URL
-    SENSE_READY // UPPAAL: Ready to sense (xv >= URL) or pace (xv >= LRL), invariant xv <= LRL
+    SENSE_READY // UPPAAL: Ready to sense or pace (xv >= LRL), invariant xv <= LRL
 };
 
 // ========================================
 // Global State Variables
 // ========================================
-volatile PacemakerState currentState = WAIT_RI;
+volatile PacemakerState currentState = SENSE_READY;
 volatile uint32_t stateStartTime = 0;
 volatile uint32_t currentRI = LRL; // Current active Rate Interval
 volatile bool lastWasPace = false;
@@ -125,34 +124,15 @@ void TaskHeartPolling(void *pvParameters)
         switch (currentState)
         {
         case WAIT_VRP:
-            // UPPAAL: WaitVRP -> WaitRI when xv >= VRP
+            // UPPAAL: WaitVRP -> SenseReady when xv >= VRP
             if (timeInState >= VRP)
             {
                 Serial.print(F("[Pacemaker] VRP complete (xv="));
                 Serial.print(timeInState);
                 Serial.println(F(" ms)"));
-                // UPPAAL: WaitVRP -> WaitRI assigns xv = 0
+                // UPPAAL: WaitVRP -> SenseReady assigns xv = 0
                 stateStartTime = millis();
-                transitionToState(WAIT_RI);
-            }
-            break;
-
-        case WAIT_RI:
-            // UPPAAL: WaitRI -> SenseReady when xv >= URL
-            if (timeInState >= URL)
-            {
-                Serial.print(F("[Pacemaker] URL reached (xv="));
-                Serial.print(timeInState);
-                Serial.println(F(" ms)"));
                 transitionToState(SENSE_READY);
-            }
-            // UPPAAL: WaitRI -> PaceEvent when xv >= LRL (shouldn't happen if URL < LRL)
-            else if (timeInState >= LRL)
-            {
-                Serial.print(F("[Pacemaker] LRL timeout in WAIT_RI (xv="));
-                Serial.print(timeInState);
-                Serial.println(F(" ms) -> PACE"));
-                sendPaceSignal();
             }
             break;
 
@@ -189,9 +169,6 @@ void transitionToState(PacemakerState newState)
     case WAIT_VRP:
         Serial.print(F("WAIT_VRP"));
         break;
-    case WAIT_RI:
-        Serial.print(F("WAIT_RI"));
-        break;
     case SENSE_READY:
         Serial.print(F("SENSE_READY"));
         break;
@@ -201,9 +178,6 @@ void transitionToState(PacemakerState newState)
     {
     case WAIT_VRP:
         Serial.println(F("WAIT_VRP"));
-        break;
-    case WAIT_RI:
-        Serial.println(F("WAIT_RI"));
         break;
     case SENSE_READY:
         Serial.println(F("SENSE_READY"));
@@ -340,16 +314,23 @@ void calculateAndPublishMetrics()
     {
         char payload[200];
 
-        // Publish average heart rate
-        snprintf(payload, sizeof(payload),
-                 "{\"window\":%lu,\"avg_bpm\":%.2f,\"total_beats\":%u,\"paced_beats\":%u,\"pace_pct\":%.1f}",
-                 WINDOW_SIZE, avgHeartRate, totalBeats, pacedBeats, pacePercentage);
-        mqttClient.beginMessage("cis441-541/heart_racer/pacemaker/heartrate");
-        mqttClient.print(payload);
-        mqttClient.endMessage();
+        // Publish average heart rate (only if we have sufficient data)
+        if (totalBeats > 1)
+        {
+            snprintf(payload, sizeof(payload),
+                     "{\"window\":%lu,\"avg_bpm\":%.2f,\"total_beats\":%u,\"paced_beats\":%u,\"pace_pct\":%.1f}",
+                     WINDOW_SIZE, avgHeartRate, totalBeats, pacedBeats, pacePercentage);
+            mqttClient.beginMessage("cis441-541/heart_racer/pacemaker/heartrate");
+            mqttClient.print(payload);
+            mqttClient.endMessage();
 
-        Serial.print(F("[MQTT] Published heartrate: "));
-        Serial.println(payload);
+            Serial.print(F("[MQTT] Published heartrate: "));
+            Serial.println(payload);
+        }
+        else
+        {
+            Serial.println(F("[MQTT] Insufficient beats for heartrate calculation"));
+        }
 
         // Publish slow heart alarm
         if (slowHeartAlarm)
@@ -369,8 +350,8 @@ void calculateAndPublishMetrics()
         if (fastHeartAlarm)
         {
             snprintf(payload, sizeof(payload),
-                     "{\"type\":\"FAST_HEART\",\"avg_bpm\":%.2f,\"max_bpm\":%.2f}",
-                     avgHeartRate, maxHeartRate);
+                     "{\"type\":\"FAST_HEART\",\"avg_bpm\":%.2f}",
+                     avgHeartRate);
             mqttClient.beginMessage("cis441-541/heart_racer/pacemaker/alarm");
             mqttClient.print(payload);
             mqttClient.endMessage();
@@ -515,8 +496,8 @@ void setup()
 
     // Initialize pacemaker state machine
     stateStartTime = millis();
-    currentState = WAIT_RI;
-    Serial.println(F("[Pacemaker] State machine initialized -> WAIT_RI"));
+    currentState = SENSE_READY;
+    Serial.println(F("[Pacemaker] State machine initialized -> SENSE_READY"));
 
     // Create FreeRTOS tasks
     BaseType_t result;
