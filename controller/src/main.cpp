@@ -24,9 +24,9 @@ const char PACE_SIGNAL = 'P';  // Pacemaker sends 'P' to pace the heart
 // ========================================
 enum PacemakerState
 {
-    WAIT_VRP,   // Waiting during Ventricular Refractory Period (after pace or sense)
-    WAIT_RI,    // Waiting during Rate Interval (can't sense yet, before URL)
-    SENSE_READY // Ready to sense heart signals (after URL, before LRL)
+    WAIT_VRP,   // UPPAAL: Waiting during VRP, invariant xv <= VRP
+    WAIT_RI,    // UPPAAL: Waiting during Rate Interval, invariant xv <= LRL, can't sense until URL
+    SENSE_READY // UPPAAL: Ready to sense (xv >= URL) or pace (xv >= LRL), invariant xv <= LRL
 };
 
 // ========================================

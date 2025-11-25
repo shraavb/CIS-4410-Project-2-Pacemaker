@@ -9,6 +9,10 @@
 const uint32_t minIBI = 400;  // Minimum Inter-Beat Interval in ms
 const uint32_t maxIBI = 1200; // Maximum Inter-Beat Interval in ms
 
+// UPPAAL Model Invariants:
+// - Resting state: xh <= minIBI
+// - SenseReady state: xh <= maxIBI
+
 // Communication protocol
 const char SENSE_SIGNAL = 'S'; // Heart sends 'S' when it beats intrinsically
 const char PACE_SIGNAL = 'P';  // Pacemaker sends 'P' to pace the heart
@@ -18,10 +22,10 @@ const char PACE_SIGNAL = 'P';  // Pacemaker sends 'P' to pace the heart
 // ========================================
 enum HeartState
 {
-    RESTING,     // Initial state, waiting for intrinsic beat or pace
-    SENSE_READY, // Ready to generate intrinsic beat (xh >= minIBI)
-    SENSE_EVENT, // Committed state: sending sense signal
-    PACED_EVENT  // Committed state: received pace signal
+    RESTING,     // UPPAAL: Initial state, invariant xh <= minIBI
+    SENSE_READY, // UPPAAL: Ready to beat, invariant xh <= maxIBI, can receive pace or send sense
+    SENSE_EVENT, // UPPAAL: Committed state, sending sense signal to pacemaker
+    PACED_EVENT  // UPPAAL: Committed state, received pace signal from pacemaker
 };
 
 // ========================================
