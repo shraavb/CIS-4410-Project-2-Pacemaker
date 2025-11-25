@@ -123,6 +123,8 @@ void TaskHeartStateMachine(void *pvParameters)
             currentBeatInterval = generateRandomBeatInterval();
             Serial.print(F("[Heart] Next beat interval: "));
             Serial.println(currentBeatInterval);
+            // UPPAAL: SenseEvent -> Resting assigns xh = 0
+            stateStartTime = millis();
             transitionToState(RESTING);
             break;
 
@@ -132,6 +134,8 @@ void TaskHeartStateMachine(void *pvParameters)
             currentBeatInterval = generateRandomBeatInterval();
             Serial.print(F("[Heart] Next beat interval: "));
             Serial.println(currentBeatInterval);
+            // UPPAAL: PacedEvent -> Resting assigns xh = 0
+            stateStartTime = millis();
             transitionToState(RESTING);
             break;
         }
@@ -147,12 +151,12 @@ void TaskHeartStateMachine(void *pvParameters)
 // Helper Functions for State Machine
 // ========================================
 
-// Transition to a new state and reset the heart clock
+// Transition to a new state (clock continues unless explicitly reset)
 void transitionToState(HeartState newState)
 {
     currentState = newState;
-    stateStartTime = millis();
-    xh = 0;
+    // Note: stateStartTime is NOT reset here - clock keeps running
+    // Only reset when UPPAAL model explicitly assigns xh = 0
 }
 
 // Send a sense signal to the pacemaker

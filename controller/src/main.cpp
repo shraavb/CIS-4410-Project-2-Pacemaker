@@ -102,6 +102,8 @@ void TaskHeartPolling(void *pvParameters)
             if (timeInState >= VRP)
             {
                 Serial.println(F("[Pacemaker] VRP complete -> WAIT_RI"));
+                // UPPAAL: WaitVRP -> WaitRI assigns xv = 0
+                stateStartTime = millis();
                 transitionToState(WAIT_RI);
             }
             break;
@@ -142,11 +144,12 @@ void TaskHeartPolling(void *pvParameters)
 // Helper Functions for State Machine
 // ========================================
 
-// Transition to a new state and reset the state timer
+// Transition to a new state (clock continues unless explicitly reset)
 void transitionToState(PacemakerState newState)
 {
     currentState = newState;
-    stateStartTime = millis();
+    // Note: stateStartTime is NOT reset here - clock keeps running
+    // Only reset when UPPAAL model explicitly assigns xv = 0
 }
 
 // Handle a sense signal from the heart
@@ -159,6 +162,9 @@ void handleSenseSignal()
     currentRI = HRI; // Use hysteresis rate interval after a sense
 
     Serial.println(F("[Pacemaker] Sense event processed -> WAIT_VRP"));
+
+    // UPPAAL: SenseEvent -> WaitVRP assigns xv = 0
+    stateStartTime = millis();
 
     // Transition to VRP (refractory period)
     transitionToState(WAIT_VRP);
@@ -176,6 +182,9 @@ void sendPaceSignal()
     // Send pace signal to heart via serial
     heartSerial.write(PACE_SIGNAL);
     Serial.println(F("[Pacemaker] PACE signal sent -> WAIT_VRP"));
+
+    // UPPAAL: PaceEvent -> WaitVRP assigns xv = 0
+    stateStartTime = millis();
 
     // Transition to VRP (refractory period)
     transitionToState(WAIT_VRP);
