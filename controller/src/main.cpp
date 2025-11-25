@@ -10,8 +10,8 @@
 // ========================================
 // Pacemaker VVI Mode Constants (from UPPAAL model)
 // ========================================
-const uint32_t LRL = 1000;      // Lower Rate Limit in ms (60 bpm)
-const uint32_t URL = 180;       // Upper Rate Limit in ms (shortest time before sensing)
+const uint32_t LRL = 1500;      // Lower Rate Limit in ms (60 bpm)
+const uint32_t URL = 333;       // Upper Rate Limit in ms (shortest time before sensing)
 const uint32_t VRP = 150;       // Ventricular Refractory Period in ms
 const uint32_t HRI = LRL + 200; // Hysteresis Rate Interval
 
@@ -44,9 +44,32 @@ SemaphoreHandle_t stateMutex;
 // WiFi and MQTT configuration
 WiFiClient wifiClient;
 MqttClient mqttClient(wifiClient);
+const char MQTT_BROKER[] = "mqtt-dev.precise.seas.upenn.edu";
+const int MQTT_PORT = 1883;
 
 // Using hardware Serial1 (physical pins: TX=pin 1, RX=pin 0) for Arduino-to-Arduino communication
 #define heartSerial Serial1
+
+// ========================================
+// Heartbeat Monitor Configuration (Milestone 2)
+// ========================================
+const uint32_t WINDOW_SIZE = 20;     // W: window size in seconds (20, 40, or 60)
+const uint32_t PUBLISH_INTERVAL = 5; // P: publish interval in seconds (5, 10, 15, or 20)
+const uint8_t PACE_THRESHOLD = 70;   // Alarm if >70% of beats are paced (slow heart)
+
+// Beat tracking structure
+struct BeatEvent
+{
+    uint32_t timestamp; // Time in milliseconds
+    bool wasPaced;      // true if paced, false if sensed
+};
+
+// Circular buffer for beat events
+#define MAX_BEATS 200 // Maximum beats to track (enough for 60s window at high rates)
+BeatEvent beatBuffer[MAX_BEATS];
+volatile uint16_t beatCount = 0;
+volatile uint16_t beatIndex = 0;
+SemaphoreHandle_t beatMutex;
 
 // ========================================
 // Forward Declarations
@@ -54,6 +77,8 @@ MqttClient mqttClient(wifiClient);
 void sendPaceSignal();
 void handleSenseSignal();
 void transitionToState(PacemakerState newState);
+void recordBeat(bool wasPaced);
+void calculateAndPublishMetrics();
 
 // ========================================
 // Task: Heart Signal Polling
@@ -201,6 +226,9 @@ void handleSenseSignal()
 
     Serial.println(F("[Pacemaker] Sense event processed -> WAIT_VRP"));
 
+    // Record sensed beat (Milestone 2)
+    recordBeat(false);
+
     // UPPAAL: SenseEvent -> WaitVRP assigns xv = 0
     stateStartTime = millis();
 
@@ -221,11 +249,148 @@ void sendPaceSignal()
     heartSerial.write(PACE_SIGNAL);
     Serial.println(F("[Pacemaker] PACE signal sent -> WAIT_VRP"));
 
+    // Record paced beat (Milestone 2)
+    recordBeat(true);
+
     // UPPAAL: PaceEvent -> WaitVRP assigns xv = 0
     stateStartTime = millis();
 
     // Transition to VRP (refractory period)
     transitionToState(WAIT_VRP);
+}
+
+// ========================================
+// Heartbeat Monitoring Functions (Milestone 2)
+// ========================================
+
+// Record a beat event in the circular buffer
+void recordBeat(bool wasPaced)
+{
+    xSemaphoreTake(beatMutex, portMAX_DELAY);
+
+    beatBuffer[beatIndex].timestamp = millis();
+    beatBuffer[beatIndex].wasPaced = wasPaced;
+
+    beatIndex = (beatIndex + 1) % MAX_BEATS;
+    if (beatCount < MAX_BEATS)
+    {
+        beatCount++;
+    }
+
+    xSemaphoreGive(beatMutex);
+}
+
+// Calculate metrics and publish to MQTT
+void calculateAndPublishMetrics()
+{
+    xSemaphoreTake(beatMutex, portMAX_DELAY);
+
+    uint32_t currentTime = millis();
+    uint32_t windowMs = WINDOW_SIZE * 1000;
+    uint32_t cutoffTime = currentTime - windowMs;
+
+    // Count beats in the window
+    uint16_t totalBeats = 0;
+    uint16_t pacedBeats = 0;
+
+    for (uint16_t i = 0; i < beatCount; i++)
+    {
+        uint16_t idx = (beatIndex + MAX_BEATS - beatCount + i) % MAX_BEATS;
+        if (beatBuffer[idx].timestamp >= cutoffTime)
+        {
+            totalBeats++;
+            if (beatBuffer[idx].wasPaced)
+            {
+                pacedBeats++;
+            }
+        }
+    }
+
+    xSemaphoreGive(beatMutex);
+
+    // Calculate average heart rate (beats per minute)
+    float avgHeartRate = 0.0;
+    if (totalBeats > 1)
+    {
+        avgHeartRate = (totalBeats * 60.0) / WINDOW_SIZE;
+    }
+
+    // Calculate pace percentage
+    float pacePercentage = 0.0;
+    if (totalBeats > 0)
+    {
+        pacePercentage = (pacedBeats * 100.0) / totalBeats;
+    }
+
+    // Detect alarms
+    bool slowHeartAlarm = (pacePercentage > PACE_THRESHOLD);
+    bool fastHeartAlarm = false;
+
+    // Check if heart rate is too fast (average inter-beat interval < URL)
+    // avgHeartRate in bpm, URL is in ms
+    // Convert: if avgHeartRate > 60000/URL bpm, it's too fast
+    float maxHeartRate = 60000.0 / URL; // ~333 bpm for URL=180ms
+    if (avgHeartRate > maxHeartRate)
+    {
+        fastHeartAlarm = true;
+    }
+
+    // Publish to MQTT
+    if (mqttClient.connected())
+    {
+        char payload[200];
+
+        // Publish average heart rate
+        snprintf(payload, sizeof(payload),
+                 "{\"window\":%lu,\"avg_bpm\":%.2f,\"total_beats\":%u,\"paced_beats\":%u,\"pace_pct\":%.1f}",
+                 WINDOW_SIZE, avgHeartRate, totalBeats, pacedBeats, pacePercentage);
+        mqttClient.beginMessage("cis441-541/heart_racer/pacemaker/heartrate");
+        mqttClient.print(payload);
+        mqttClient.endMessage();
+
+        Serial.print(F("[MQTT] Published heartrate: "));
+        Serial.println(payload);
+
+        // Publish slow heart alarm
+        if (slowHeartAlarm)
+        {
+            snprintf(payload, sizeof(payload),
+                     "{\"type\":\"SLOW_HEART\",\"pace_pct\":%.1f,\"threshold\":%u}",
+                     pacePercentage, PACE_THRESHOLD);
+            mqttClient.beginMessage("cis441-541/heart_racer/pacemaker/alarm");
+            mqttClient.print(payload);
+            mqttClient.endMessage();
+
+            Serial.print(F("[MQTT] ALARM - Slow heart: "));
+            Serial.println(payload);
+        }
+
+        // Publish fast heart alarm
+        if (fastHeartAlarm)
+        {
+            snprintf(payload, sizeof(payload),
+                     "{\"type\":\"FAST_HEART\",\"avg_bpm\":%.2f,\"max_bpm\":%.2f}",
+                     avgHeartRate, maxHeartRate);
+            mqttClient.beginMessage("cis441-541/heart_racer/pacemaker/alarm");
+            mqttClient.print(payload);
+            mqttClient.endMessage();
+
+            Serial.print(F("[MQTT] ALARM - Fast heart: "));
+            Serial.println(payload);
+        }
+
+        // Publish status if no alarms
+        if (!slowHeartAlarm && !fastHeartAlarm)
+        {
+            mqttClient.beginMessage("cis441-541/heart_racer/pacemaker/status");
+            mqttClient.print("{\"status\":\"NORMAL\"}");
+            mqttClient.endMessage();
+        }
+    }
+    else
+    {
+        Serial.println(F("[MQTT] Not connected, skipping publish"));
+    }
 }
 
 // ========================================
@@ -241,11 +406,53 @@ void onMqttMessage(int messageSize)
 
 void TaskMQTT(void *pvParameters)
 {
-    // TODO: Implement MQTT task
-    // Continuously poll for MQTT messages
+    Serial.println(F("[MQTT] Task started"));
+
+    // Connect to MQTT broker
+    mqttClient.setUsernamePassword(SECRET_MQTT_USERNAME, SECRET_MQTT_PASSWORD);
+
+    Serial.print(F("[MQTT] Connecting to broker: "));
+    Serial.println(MQTT_BROKER);
+
+    while (!mqttClient.connect(MQTT_BROKER, MQTT_PORT))
+    {
+        Serial.print(F("[MQTT] Connection failed, error: "));
+        Serial.println(mqttClient.connectError());
+        vTaskDelay(pdMS_TO_TICKS(5000));
+    }
+
+    Serial.println(F("[MQTT] Connected to broker"));
+
+    // Publish interval tracking
+    uint32_t lastPublishTime = millis();
+    uint32_t publishIntervalMs = PUBLISH_INTERVAL * 1000;
+
     while (true)
     {
-        // Placeholder - MQTT functionality to be implemented
+        // Keep MQTT connection alive
+        mqttClient.poll();
+
+        // Check if it's time to publish
+        uint32_t currentTime = millis();
+        if (currentTime - lastPublishTime >= publishIntervalMs)
+        {
+            calculateAndPublishMetrics();
+            lastPublishTime = currentTime;
+        }
+
+        // Reconnect if disconnected
+        if (!mqttClient.connected())
+        {
+            Serial.println(F("[MQTT] Disconnected, reconnecting..."));
+            while (!mqttClient.connect(MQTT_BROKER, MQTT_PORT))
+            {
+                Serial.print(F("[MQTT] Reconnection failed, error: "));
+                Serial.println(mqttClient.connectError());
+                vTaskDelay(pdMS_TO_TICKS(5000));
+            }
+            Serial.println(F("[MQTT] Reconnected"));
+        }
+
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
@@ -286,13 +493,25 @@ void setup()
     stateMutex = xSemaphoreCreateMutex();
     if (stateMutex == NULL)
     {
-        Serial.println(F("[ERROR] Failed to create mutex"));
+        Serial.println(F("[ERROR] Failed to create state mutex"));
         while (1)
         {
             delay(1000);
         }
     }
-    Serial.println(F("[Pacemaker] Mutex created"));
+    Serial.println(F("[Pacemaker] State mutex created"));
+
+    // Initialize mutex for beat tracking (Milestone 2)
+    beatMutex = xSemaphoreCreateMutex();
+    if (beatMutex == NULL)
+    {
+        Serial.println(F("[ERROR] Failed to create beat mutex"));
+        while (1)
+        {
+            delay(1000);
+        }
+    }
+    Serial.println(F("[Pacemaker] Beat mutex created"));
 
     // Initialize pacemaker state machine
     stateStartTime = millis();
