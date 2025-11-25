@@ -23,7 +23,7 @@ bool last_sense = false;
 
 // Bounds on heart’s intrinsic beat interval (IBI)
 const int minIBI = 400;   // 
-const int maxIBI = 1200;  // </declaration>
+const int maxIBI = 2000;  // </declaration>
 	<template>
 		<name>Pacemaker</name>
 		<declaration>//Models the pacemaker controller that monitors and paces the ventricle.
@@ -140,7 +140,7 @@ system Pacemaker, Heart;
 			<formula>A[] not deadlock</formula>
 			<comment/>
 			<option key="--diagnostic" value="0"/>
-			<result outcome="success" type="quality" timestamp="2025-11-24 22:57:42 -0500">
+			<result outcome="success" type="quality" timestamp="2025-11-24 23:13:41 -0500">
 				<option key="--diagnostic" value="0"/>
 			</result>
 		</query>
@@ -148,7 +148,7 @@ system Pacemaker, Heart;
 			<formula>A[] Pacemaker.WaitVRP imply Pacemaker.xv &lt;= VRP</formula>
 			<comment/>
 			<option key="--diagnostic" value="0"/>
-			<result outcome="success" type="quality" timestamp="2025-11-24 22:57:42 -0500">
+			<result outcome="success" type="quality" timestamp="2025-11-24 23:13:52 -0500">
 				<option key="--diagnostic" value="0"/>
 			</result>
 		</query>
@@ -156,7 +156,7 @@ system Pacemaker, Heart;
 			<formula>A[] (Pacemaker.xv &gt; VRP) imply !Pacemaker.WaitVRP</formula>
 			<comment/>
 			<option key="--diagnostic" value="0"/>
-			<result outcome="success" type="quality" timestamp="2025-11-24 22:57:42 -0500">
+			<result outcome="success" type="quality" timestamp="2025-11-24 23:13:52 -0500">
 				<option key="--diagnostic" value="0"/>
 			</result>
 		</query>
@@ -164,32 +164,32 @@ system Pacemaker, Heart;
 			<formula>A[] Pacemaker.xv &lt;= LRL</formula>
 			<comment/>
 			<option key="--diagnostic" value="0"/>
-			<result outcome="success" type="quality" timestamp="2025-11-24 22:57:42 -0500">
+			<result outcome="success" type="quality" timestamp="2025-11-24 23:13:52 -0500">
 				<option key="--diagnostic" value="0"/>
 			</result>
 		</query>
 		<query>
 			<formula>A[] last_pace imply Pacemaker.xv &gt;= VRP</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-11-24 22:57:42 -0500">
+			<result outcome="success" type="quality" timestamp="2025-11-24 23:13:52 -0500">
 			</result>
 		</query>
 		<query>
 			<formula>A[] last_sense imply RI == HRI</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-11-24 22:57:42 -0500">
+			<result outcome="success" type="quality" timestamp="2025-11-24 23:13:52 -0500">
 			</result>
 		</query>
 		<query>
 			<formula>A[] last_pace imply RI == LRL</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-11-24 22:57:42 -0500">
+			<result outcome="success" type="quality" timestamp="2025-11-24 23:13:52 -0500">
 			</result>
 		</query>
 		<query>
 			<formula>A[] Heart.xh &lt;= maxIBI</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-11-24 22:57:42 -0500">
+			<result outcome="success" type="quality" timestamp="2025-11-24 23:13:52 -0500">
 			</result>
 		</query>
 	</queries>
