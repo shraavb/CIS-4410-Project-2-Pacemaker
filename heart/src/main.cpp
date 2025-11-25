@@ -71,8 +71,8 @@ void TaskHeartStateMachine(void *pvParameters)
             {
                 xSemaphoreTake(stateMutex, portMAX_DELAY);
 
-                // UPPAAL: Resting -> PacedEvent when pace? received and xh < minIBI
-                if (currentState == RESTING && xh < minIBI)
+                // UPPAAL: Resting -> PacedEvent when pace? received and xh < minIBI (1300)
+                if (currentState == RESTING && xh < maxIBI)
                 {
                     Serial.println(F("[Heart] PACE received (early) -> PACED_EVENT"));
                     handlePaceSignal();
@@ -82,7 +82,10 @@ void TaskHeartStateMachine(void *pvParameters)
                     Serial.print(F("[Heart] PACE ignored (xh="));
                     Serial.print(xh);
                     Serial.print(F(", state="));
-                    Serial.print(currentState);
+                    Serial.print(currentState == RESTING ? "RESTING" :
+                                 currentState == SENSE_READY ? "SENSE_READY" :
+                                 currentState == SENSE_EVENT ? "SENSE_EVENT" :
+                                 currentState == PACED_EVENT ? "PACED_EVENT" : "UNKNOWN");
                     Serial.println(F(")"));
                 }
 

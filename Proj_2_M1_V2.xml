@@ -106,7 +106,7 @@ clock xh; // heart clock: time since last intrinsic or paced beat
 </declaration>
 		<location id="id12" x="0" y="-280">
 			<name x="25" y="-306">Resting</name>
-			<label kind="invariant" x="25" y="-323">xh &lt;= maxIBI</label>
+			<label kind="invariant" x="25" y="-323">xh &lt;= minIBI</label>
 		</location>
 		<location id="id13" x="-170" y="-170">
 			<name x="-204" y="-153">PacedEvent</name>
@@ -117,33 +117,34 @@ clock xh; // heart clock: time since last intrinsic or paced beat
 			<committed/>
 		</location>
 		<location id="id15" x="-289" y="-323">
-			<name x="-340" y="-306">SenseReady</name>
-			<label kind="invariant" x="-340" y="-289">xh &lt;= maxIBI</label>
+			<name x="-408" y="-340">SenseReady</name>
+			<label kind="invariant" x="-425" y="-314">xh &lt;= maxIBI</label>
 		</location>
 		<init ref="id12"/>
 		<transition id="id16">
-			<source ref="id12"/>
-			<target ref="id13"/>
-			<label kind="guard" x="-85" y="-170">xh &lt; minIBI</label>
-			<label kind="synchronisation" x="-85" y="-187">pace?</label>
-			<label kind="assignment" x="-85" y="-221">last_pace = true,
-last_sense = false</label>
-		</transition>
-		<transition id="id17">
 			<source ref="id13"/>
 			<target ref="id12"/>
-			<label kind="assignment" x="-204" y="-136">xh = 0</label>
+			<label kind="assignment" x="0" y="-212">xh = 0
+last_pace = false</label>
+			<nail x="-25" y="-195"/>
+		</transition>
+		<transition id="id17">
+			<source ref="id15"/>
+			<target ref="id13"/>
+			<label kind="synchronisation" x="-314" y="-263">pace?</label>
+			<label kind="assignment" x="-399" y="-238">last_pace = true,
+last_sense = false</label>
 		</transition>
 		<transition id="id18">
 			<source ref="id12"/>
 			<target ref="id15"/>
-			<label kind="guard" x="-221" y="-297">xh &gt;= minIBI</label>
+			<label kind="guard" x="-204" y="-289">xh &gt;= minIBI</label>
 		</transition>
 		<transition id="id19">
 			<source ref="id15"/>
 			<target ref="id14"/>
-			<label kind="synchronisation" x="-391" y="-416">sense!</label>
-			<label kind="assignment" x="-391" y="-399">last_pace = false,
+			<label kind="synchronisation" x="-374" y="-433">sense!</label>
+			<label kind="assignment" x="-408" y="-399">last_pace = false,
 last_sense = true</label>
 		</transition>
 		<transition id="id20">
