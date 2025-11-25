@@ -83,7 +83,8 @@ RI = LRL</label>
 		<transition id="id9">
 			<source ref="id3"/>
 			<target ref="id0"/>
-			<label kind="assignment" x="-255" y="-119">xv = 0</label>
+			<label kind="assignment" x="-255" y="-119">xv = 0,
+last_pace = false</label>
 		</transition>
 		<transition id="id10">
 			<source ref="id4"/>
@@ -124,16 +125,13 @@ clock xh; // heart clock: time since last intrinsic or paced beat
 		<transition id="id16">
 			<source ref="id13"/>
 			<target ref="id12"/>
-			<label kind="assignment" x="0" y="-212">xh = 0
-last_pace = false</label>
+			<label kind="assignment" x="0" y="-212">xh = 0</label>
 			<nail x="-25" y="-195"/>
 		</transition>
 		<transition id="id17">
 			<source ref="id15"/>
 			<target ref="id13"/>
 			<label kind="synchronisation" x="-314" y="-263">pace?</label>
-			<label kind="assignment" x="-399" y="-238">last_pace = true,
-last_sense = false</label>
 		</transition>
 		<transition id="id18">
 			<source ref="id12"/>
@@ -144,14 +142,11 @@ last_sense = false</label>
 			<source ref="id15"/>
 			<target ref="id14"/>
 			<label kind="synchronisation" x="-374" y="-433">sense!</label>
-			<label kind="assignment" x="-408" y="-399">last_pace = false,
-last_sense = true</label>
 		</transition>
 		<transition id="id20">
 			<source ref="id14"/>
 			<target ref="id12"/>
-			<label kind="assignment" x="-93" y="-391">xh = 0,
-last_sense = false</label>
+			<label kind="assignment" x="-93" y="-391">xh = 0</label>
 		</transition>
 	</template>
 	<system>// System declarations
