@@ -71,10 +71,12 @@ void TaskHeartStateMachine(void *pvParameters)
             {
                 xSemaphoreTake(stateMutex, portMAX_DELAY);
 
-                // UPPAAL: Resting -> PacedEvent when pace? received and xh < minIBI (1300)
-                if (currentState == RESTING && xh < maxIBI)
+                // UPPAAL: SenseReady -> PacedEvent when pace? received
+                if (currentState == SENSE_READY)
                 {
-                    Serial.println(F("[Heart] PACE received (early) -> PACED_EVENT"));
+                    Serial.print(F("[Heart] PACE received in SENSE_READY (xh="));
+                    Serial.print(xh);
+                    Serial.println(F(") -> PACED_EVENT"));
                     handlePaceSignal();
                 }
                 else
@@ -99,6 +101,7 @@ void TaskHeartStateMachine(void *pvParameters)
         switch (currentState)
         {
         case RESTING:
+            // UPPAAL: Resting state invariant: xh <= minIBI
             // UPPAAL: Resting -> SenseReady when xh >= minIBI
             if (xh >= minIBI)
             {
@@ -110,6 +113,7 @@ void TaskHeartStateMachine(void *pvParameters)
             break;
 
         case SENSE_READY:
+            // UPPAAL: SenseReady state invariant: xh <= maxIBI
             // UPPAAL: SenseReady -> SenseEvent (intrinsic beat occurs)
             // The heart beats intrinsically at a random time between minIBI and maxIBI
             if (xh >= currentBeatInterval)
@@ -123,23 +127,25 @@ void TaskHeartStateMachine(void *pvParameters)
 
         case SENSE_EVENT:
             // UPPAAL: SenseEvent -> Resting (committed state, immediate transition)
+            // UPPAAL: Assigns xh = 0, last_sense = false
             sendSenseSignal();
             Serial.println(F("[Heart] Sense signal sent -> RESTING"));
             currentBeatInterval = generateRandomBeatInterval();
             Serial.print(F("[Heart] Next beat interval: "));
             Serial.println(currentBeatInterval);
-            // UPPAAL: SenseEvent -> Resting assigns xh = 0
+            // Reset clock (xh = 0)
             stateStartTime = millis();
             transitionToState(RESTING);
             break;
 
         case PACED_EVENT:
             // UPPAAL: PacedEvent -> Resting (committed state, immediate transition)
+            // UPPAAL: Assigns xh = 0, last_pace = false
             Serial.println(F("[Heart] Pace processed -> RESTING"));
             currentBeatInterval = generateRandomBeatInterval();
             Serial.print(F("[Heart] Next beat interval: "));
             Serial.println(currentBeatInterval);
-            // UPPAAL: PacedEvent -> Resting assigns xh = 0
+            // Reset clock (xh = 0)
             stateStartTime = millis();
             transitionToState(RESTING);
             break;
