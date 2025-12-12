@@ -6,9 +6,9 @@ A real-time embedded systems project implementing a VVI (Ventricular Inhibited) 
 
 Your submission should include presentation slides, recording, Arduino code, Codio heart-monitor code, the UPPAAL model, and your final report, all packaged into a single ZIP file and uploaded to Canvas. Please also include a README with instructions on how to run your code.
 
-1 Presentation Slides [check]
+1. Presentation Slides [check]
 
-2 Recording [check] - in the report
+2. Recording [check] - in the report
 
 3. Codio code [check]
 
