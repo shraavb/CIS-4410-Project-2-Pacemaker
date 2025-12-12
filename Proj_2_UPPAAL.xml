@@ -34,7 +34,7 @@ clock xv;</declaration>
 		</location>
 		<location id="id1" x="365" y="0">
 			<name x="382" y="-8">SenseReady</name>
-			<label kind="invariant" x="382" y="17">xv &lt;= LRL</label>
+			<label kind="invariant" x="382" y="17">xv &lt;= RI</label>
 		</location>
 		<location id="id2" x="-119" y="-170">
 			<name x="-170" y="-204">PaceEvent</name>
@@ -49,7 +49,6 @@ clock xv;</declaration>
 			<source ref="id0"/>
 			<target ref="id1"/>
 			<label kind="guard" x="-229" y="-85">xv &gt;= VRP</label>
-			<label kind="assignment" x="-221" y="-68">xv = 0</label>
 			<nail x="-127" y="-42"/>
 		</transition>
 		<transition id="id5">
@@ -63,7 +62,7 @@ RI = HRI</label>
 		<transition id="id6">
 			<source ref="id1"/>
 			<target ref="id2"/>
-			<label kind="guard" x="68" y="-212">xv &gt;= LRL</label>
+			<label kind="guard" x="68" y="-212">xv &gt;= RI</label>
 			<label kind="synchronisation" x="68" y="-195">pace!</label>
 			<label kind="assignment" x="68" y="-170">last_pace = true,
 last_sense = false,
@@ -140,7 +139,7 @@ system Pacemaker, Heart;
 			<formula>A[] not deadlock</formula>
 			<comment/>
 			<option key="--diagnostic" value="0"/>
-			<result outcome="success" type="quality" timestamp="2025-11-24 23:13:41 -0500">
+			<result outcome="success" type="quality" timestamp="2025-12-12 15:22:18 -0500">
 				<option key="--diagnostic" value="0"/>
 			</result>
 		</query>
@@ -148,7 +147,7 @@ system Pacemaker, Heart;
 			<formula>A[] Pacemaker.WaitVRP imply Pacemaker.xv &lt;= VRP</formula>
 			<comment/>
 			<option key="--diagnostic" value="0"/>
-			<result outcome="success" type="quality" timestamp="2025-11-24 23:13:52 -0500">
+			<result outcome="success" type="quality" timestamp="2025-12-12 15:22:18 -0500">
 				<option key="--diagnostic" value="0"/>
 			</result>
 		</query>
@@ -156,7 +155,7 @@ system Pacemaker, Heart;
 			<formula>A[] (Pacemaker.xv &gt; VRP) imply !Pacemaker.WaitVRP</formula>
 			<comment/>
 			<option key="--diagnostic" value="0"/>
-			<result outcome="success" type="quality" timestamp="2025-11-24 23:13:52 -0500">
+			<result outcome="success" type="quality" timestamp="2025-12-12 15:22:18 -0500">
 				<option key="--diagnostic" value="0"/>
 			</result>
 		</query>
@@ -164,32 +163,52 @@ system Pacemaker, Heart;
 			<formula>A[] Pacemaker.xv &lt;= LRL</formula>
 			<comment/>
 			<option key="--diagnostic" value="0"/>
-			<result outcome="success" type="quality" timestamp="2025-11-24 23:13:52 -0500">
+			<result outcome="success" type="quality" timestamp="2025-12-12 15:22:18 -0500">
 				<option key="--diagnostic" value="0"/>
 			</result>
 		</query>
 		<query>
 			<formula>A[] last_pace imply Pacemaker.xv &gt;= VRP</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-11-24 23:13:52 -0500">
+			<result outcome="success" type="quality" timestamp="2025-12-12 15:22:18 -0500">
 			</result>
 		</query>
 		<query>
 			<formula>A[] last_sense imply RI == HRI</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-11-24 23:13:52 -0500">
+			<result outcome="success" type="quality" timestamp="2025-12-12 15:22:18 -0500">
 			</result>
 		</query>
 		<query>
 			<formula>A[] last_pace imply RI == LRL</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-11-24 23:13:52 -0500">
+			<result outcome="success" type="quality" timestamp="2025-12-12 15:22:18 -0500">
 			</result>
 		</query>
 		<query>
 			<formula>A[] Heart.xh &lt;= maxIBI</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-11-24 23:13:52 -0500">
+			<result outcome="success" type="quality" timestamp="2025-12-12 15:22:18 -0500">
+			</result>
+		</query>
+		<query>
+			<formula>A[] (!last_pace imply Pacemaker.xv &lt;= RI)</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2025-12-12 15:22:18 -0500">
+			</result>
+		</query>
+		<query>
+			<formula>A[] ((!Pacemaker.WaitVRP &amp;&amp; Heart.SenseEvent) imply Pacemaker.SenseEvent)</formula>
+			<comment/>
+			<option key="--diagnostic" value="0"/>
+			<result outcome="success" type="quality" timestamp="2025-12-12 15:22:18 -0500">
+				<option key="--diagnostic" value="0"/>
+			</result>
+		</query>
+		<query>
+			<formula>A[] Pacemaker.xv &lt;= RI</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2025-12-12 15:22:18 -0500">
 			</result>
 		</query>
 	</queries>
